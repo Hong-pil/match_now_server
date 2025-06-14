@@ -9,6 +9,6 @@ export class AppService {
     const port = this.configService.get<number>('PORT');
     const dbHost = this.configService.get<string>('DATABASE_HOST');
     
-    return `Hello World! Running on port ${port}, DB: ${dbHost}`;
+    return `Hello Pil! Running on port ${port}, DB: ${dbHost}`;
   }
 }
