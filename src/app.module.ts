@@ -1,15 +1,36 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    // 전역으로 사용하기 위해 isGlobal: true 설정
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env', // 기본값이지만 명시적으로 설정
+      envFilePath: '.env',
     }),
+    
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        const uri = configService.get<string>('MONGODB_URI', 'mongodb://mongodb:27017/match_now_db');
+        
+        console.log('🔌 Connecting to MongoDB:', uri);
+        
+        return {
+          uri,
+          maxPoolSize: 10,
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 45000,
+          bufferCommands: false,
+        };
+      },
+      inject: [ConfigService],
+    }),
+    
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

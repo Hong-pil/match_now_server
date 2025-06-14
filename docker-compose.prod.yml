@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  match_now_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: match_now_server_prod
+    ports:
+      - "3701:3701"
+    environment:
+      - NODE_ENV=production
+      - PORT=3701
+      - MONGODB_URI=mongodb://mongodb:27017/match_now_db
+    env_file:
+      - .env.production
+    depends_on:
+      - mongodb
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3701/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mongodb:
+    image: mongo:7.0
+    container_name: match_now_mongodb_prod
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_DATABASE=match_now_db
+    volumes:
+      - mongodb_prod_data:/data/db
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+volumes:
+  mongodb_prod_data:

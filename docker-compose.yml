@@ -4,35 +4,51 @@ services:
   match_now_server:
     build:
       context: .
-      dockerfile: Dockerfile.dev  # 개발용 Dockerfile 사용
+      dockerfile: Dockerfile.dev
     container_name: match_now_server
     ports:
       - "3701:3701"
     volumes:
-      # 소스코드 볼륨 마운트 (핫 리로드)
       - .:/usr/src/app
       - /usr/src/app/node_modules
     environment:
       - NODE_ENV=development
       - PORT=3701
-      # macOS/Windows에서 파일 변경 감지 향상
       - CHOKIDAR_USEPOLLING=true
-    # 데이터베이스 의존성 제거 (현재 사용하지 않으므로)
-    # depends_on:
-    #   - database
+      # 인증이 포함된 MongoDB URI
+      - MONGODB_URI=mongodb://matchuser:matchpass123@mongodb:27017/match_now_db?authSource=match_now_db
+    depends_on:
+      mongodb:
+        condition: service_healthy
     restart: unless-stopped
-      
-  # 데이터베이스는 주석 처리 (필요할 때 활성화)
-  # database:
-  #   image: mysql:8.0
-  #   container_name: match_now_db
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: password
-  #     MYSQL_DATABASE: match_now
-  #   ports:
-  #     - "3306:3306"
-  #   volumes:
-  #     - db_data:/var/lib/mysql
+    networks:
+      - match_now_network
 
-# volumes:
-#   db_data:
+  mongodb:
+    image: mongo:7.0
+    container_name: match_now_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      # 특정 데이터베이스에 사용자 생성
+      - MONGO_INITDB_DATABASE=match_now_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker-init/mongo-init-auth.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "match_now_db", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - match_now_network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  match_now_network:
+    driver: bridge
