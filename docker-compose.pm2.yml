@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  match_now_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.pm2.dev
+    container_name: match_now_server_pm2
+    ports:
+      - "3701:3701"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - pm2_logs:/usr/src/app/logs
+    environment:
+      - NODE_ENV=development
+      - PORT=3701
+      - CHOKIDAR_USEPOLLING=true
+      # MongoDB 연결 (인증 포함)
+      - MONGODB_URI=mongodb://matchuser:matchpass123@mongodb:27017/match_now_db?authSource=match_now_db
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - match_now_network
+    # PM2 헬스체크
+    healthcheck:
+      test: ["CMD", "pm2", "describe", "match-now-api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mongodb:
+    image: mongo:7.0
+    container_name: match_now_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=match_now_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker-init/mongo-init-auth.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "match_now_db", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - match_now_network
+
+volumes:
+  mongodb_data:
+    driver: local
+  pm2_logs:
+    driver: local
+
+networks:
+  match_now_network:
+    driver: bridge

@@ -15,6 +15,11 @@
  * - npm install --save @nestjs/swagger swagger-ui-express
  * # 타입 정의 (개발용)
  * - npm install --save-dev @types/swagger-ui-express
+ * 
+ * # PM2 글로벌 설치 (호스트에서)
+ * - npm install -g pm2
+ * # 프로젝트에 PM2 의존성 추가
+ * - npm install --save-dev pm2
  */
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
