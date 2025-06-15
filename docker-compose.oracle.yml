@@ -1,0 +1,30 @@
+# docker-compose.oracle.yml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.oracle
+    ports:
+      - "3701:3701"
+      - "80:3701"  # HTTP 포트도 매핑
+    environment:
+      - NODE_ENV=production
+      - PORT=3701
+      - MONGODB_URI=mongodb://matchuser:matchpass123@mongodb:27017/match_now_db?authSource=match_now_db
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    environment:
+      - MONGO_INITDB_DATABASE=match_now_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker-init/mongo-init-auth.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
